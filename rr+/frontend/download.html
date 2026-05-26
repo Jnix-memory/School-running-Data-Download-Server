@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运动数据管理系统 - 数据下载</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .nav {
+            margin-bottom: 30px;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .nav a {
+            margin-right: 20px;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>运动数据管理系统</h1>
+        
+        <div class="nav">
+            <a href="form.html">数据填写</a>
+            <a href="download.html">数据下载</a>
+        </div>
+        
+        <h2>下载运动数据</h2>
+        <table id="activitiesTable">
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>个人编号</th>
+                    <th>日期</th>
+                    <th>开始时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="activitiesBody">
+                <tr>
+                    <td colspan="5" class="loading">加载中...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        // 加载活动数据
+        function loadActivities() {
+            const activitiesBody = document.getElementById('activitiesBody');
+            activitiesBody.innerHTML = '<tr><td colspan="5" class="loading">加载中...</td></tr>';
+            
+            // 从后端API获取数据
+            fetch('/api/activities')
+                .then(response => response.json())
+                .then(activities => {
+                    activitiesBody.innerHTML = '';
+                    
+                    if (activities.length > 0) {
+                        activities.forEach((activity, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${index + 1}</td>
+                                <td>${activity.user_id}</td>
+                                <td>${activity.date}</td>
+                                <td>${activity.start_time}</td>
+                                <td><button onclick="downloadFile(${activity.id}, '${activity.date}', '${activity.start_time}', '${activity.duration}', '${activity.user_id}')">下载</button></td>
+                            `;
+                            activitiesBody.appendChild(row);
+                        });
+                    } else {
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td colspan="5" class="no-data">暂无数据</td>';
+                        activitiesBody.appendChild(row);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    activitiesBody.innerHTML = '<tr><td colspan="5" class="no-data">加载失败，请刷新页面重试</td></tr>';
+                });
+        }
+        
+        // 下载文件
+        function downloadFile(activityId, date, start_time, duration, user_id) {
+            // 从参数中获取活动数据
+            
+            // 调用后端服务生成带有正确日期信息的FIT文件
+            fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: user_id,
+                    date: date,
+                    start_time: start_time,
+                    duration: duration
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('服务器响应失败');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                // 创建下载链接
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = user_id + '.fit';
+                document.body.appendChild(link);
+                link.click();
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('下载失败，请确保后端服务正在运行');
+            });
+        }
+        
+        // 页面加载时加载数据
+        window.onload = loadActivities;
+    </script>
+</body>
+</html>

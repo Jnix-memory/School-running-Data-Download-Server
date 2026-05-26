@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运动数据管理系统 - 数据填写</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .nav {
+            margin-bottom: 30px;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .nav a {
+            margin-right: 20px;
+            text-decoration: none;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        
+        button {
+            padding: 12px 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .success {
+            color: green;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>运动数据管理系统</h1>
+        
+        <div class="nav">
+            <a href="form.html">数据填写</a>
+            <a href="download.html">数据下载</a>
+        </div>
+        
+        <h2>填写运动数据</h2>
+        <form id="activityForm">
+            <div class="form-group">
+                <label for="user_id">个人编号（三位数）</label>
+                <input type="text" id="user_id" name="user_id" placeholder="例如：021, 111" required>
+                <div class="error" id="user_id_error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="date">日期（格式：YYYYMMDD）</label>
+                <input type="text" id="date" name="date" placeholder="例如：20260212" required>
+                <div class="error" id="date_error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="start_time">开始时间（格式：HHMM）</label>
+                <input type="text" id="start_time" name="start_time" placeholder="例如：1315, 2013" required>
+                <div class="error" id="start_time_error"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">运动总时长（格式：MMSS）</label>
+                <input type="text" id="duration" name="duration" placeholder="例如：2103, 2012" required>
+                <div class="error" id="duration_error"></div>
+            </div>
+            
+            <button type="submit">提交</button>
+            <div class="success" id="success_message"></div>
+        </form>
+    </div>
+    
+    <script>
+        // 表单提交
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // 重置错误信息
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            document.getElementById('success_message').textContent = '';
+            
+            // 获取表单数据
+            const user_id = document.getElementById('user_id').value;
+            const date = document.getElementById('date').value;
+            const start_time = document.getElementById('start_time').value;
+            const duration = document.getElementById('duration').value;
+            
+            // 验证数据
+            let isValid = true;
+            
+            if (!/^\d{3}$/.test(user_id)) {
+                document.getElementById('user_id_error').textContent = '个人编号必须是三位数';
+                isValid = false;
+            }
+            
+            if (!/^\d{8}$/.test(date)) {
+                document.getElementById('date_error').textContent = '日期格式必须是8位数字';
+                isValid = false;
+            }
+            
+            if (!/^\d{4}$/.test(start_time)) {
+                document.getElementById('start_time_error').textContent = '开始时间格式必须是4位数字';
+                isValid = false;
+            }
+            
+            if (!/^\d{4}$/.test(duration)) {
+                document.getElementById('duration_error').textContent = '运动总时长格式必须是4位数字';
+                isValid = false;
+            }
+            
+            if (isValid) {
+                // 提交数据到后端API
+                fetch('/api/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_id: user_id,
+                        date: date,
+                        start_time: start_time,
+                        duration: duration
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 显示成功消息
+                        document.getElementById('success_message').textContent = '数据提交成功！';
+                        // 清空表单
+                        document.getElementById('activityForm').reset();
+                        // 2秒后隐藏成功消息
+                        setTimeout(() => {
+                            document.getElementById('success_message').textContent = '';
+                        }, 2000);
+                    } else {
+                        document.getElementById('success_message').textContent = '数据提交失败：' + (data.error || '未知错误');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('success_message').textContent = '数据提交失败：网络错误';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
